@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors, Fonts } from '../src/constants/theme';
 import { ReactNode } from 'react';
 
@@ -45,14 +46,18 @@ const slides: Slide[] = [
 
 // ── Decorative icon illustrations ─────────────────────────
 
+const slideIcons = {
+  geo: 'map-marker-radius-outline',
+  shield: 'shield-check-outline',
+  chart: 'trending-up',
+} as const;
+
 function SlideIcon({ shape }: { shape: 'geo' | 'shield' | 'chart' }) {
   return (
     <View style={icon.wrapper}>
       <ConnectorLines shape={shape} />
       <View style={icon.pill}>
-        <Text style={icon.emoji}>
-          {shape === 'geo' ? '📍' : shape === 'shield' ? '🛡️' : '📈'}
-        </Text>
+        <MaterialCommunityIcons name={slideIcons[shape]} size={34} color={Colors.white} />
       </View>
     </View>
   );
@@ -136,9 +141,7 @@ const icon = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  emoji: {
-    fontSize: 32,
-  },
+
 });
 
 // ── Main component ─────────────────────────
