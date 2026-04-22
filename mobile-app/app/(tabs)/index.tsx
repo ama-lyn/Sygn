@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { Colors, Fonts } from '../../src/constants/theme';
 
 const { width } = Dimensions.get('window');
@@ -158,6 +159,7 @@ const row = StyleSheet.create({
 
 // ── Home Screen ────────────────────────────────────────────
 export default function Home() {
+  const router = useRouter();
   const [sygnState, setSygnState] = useState<SygnState>('searching');
 
   const handleSygnPress = () => {
@@ -224,7 +226,7 @@ export default function Home() {
         <View style={s.section}>
           <View style={s.sectionHeader}>
             <Text style={s.sectionTitle}>TODAY'S CLASSES</Text>
-            <TouchableOpacity style={s.timetableBtn}>
+            <TouchableOpacity style={s.timetableBtn} onPress={() => router.push('/(tabs)/schedule')}>
               <MaterialCommunityIcons name="calendar-month-outline" size={14} color={Colors.orange} />
               <Text style={s.timetableText}>Timetable</Text>
             </TouchableOpacity>
