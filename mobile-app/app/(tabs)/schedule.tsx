@@ -17,15 +17,18 @@ type ClassEntry = { code: string; name: string; room: string; hour: number; dura
 
 const timetable: Record<string, ClassEntry[]> = {
   Mon: [
-    { code: 'ICS 2301', name: 'Data Structures', room: 'CLB 102', hour: 9, duration: 1.5, color: '#F15A2B' },
-    { code: 'ICS 2205', name: 'Operating Systems', room: 'LR 305', hour: 11, duration: 1.2, color: '#4CAF50' },
-    { code: 'SMA 2104', name: 'Linear Algebra', room: 'LR 102', hour: 14, duration: 1, color: '#FFC107' },
+    { code: 'SMA 2418', name: 'Mobile Computing', room: 'PAM LAB B', hour: 8, duration: 2, color: '#4A9EFF' },
+    {code: 'ICS 2303', name: 'Multimedia Systems', room: 'Online', hour: 15, duration: 1.5, color: '#E040FB' },
   ],
   Tue: [
-    { code: 'ICS 2301', name: 'Data Structures', room: 'CLB 102', hour: 10, duration: 1.5, color: '#F15A2B' },
-    { code: 'ICS 2106', name: 'Computer Networks', room: 'LR 201', hour: 13, duration: 1.2, color: '#F15A2B' },
+    {code: 'SMA 2453', name: 'Simulation and Modelling', room: 'PAM LAB B', hour: 8, duration: 1.5, color: '#4CAF50' },
+    { code: 'SMA 2419', name: 'Cloud Computing', room: 'PAM LAB B', hour: 11, duration: 2, color: '#E040FB' },
   ],
-  // ... rest of days
+  Wed: [
+    { code: 'STA 2401', name: 'Time Series Analysis', room: 'HRD 108', hour: 8, duration: 2.5, color: '#FFC107' },
+    { code: 'SMA 2423', name: 'PDE 2', room: 'CLB 106', hour: 11, duration: 2.5, color: '#4A9EFF' },
+  ],
+  Thu: [{ code: 'SMA 2456', name: 'Artificial Intelligence', room: 'PAM LAB B', hour: 8, duration: 2, color: '#4CAF50' },],
 };
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'] as const;
