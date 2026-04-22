@@ -61,7 +61,7 @@ export default function SygnScreen() {
       {status === 'pending' ? (
         <View style={s.actionArea}>
           <TouchableOpacity style={s.verifyBtn} onPress={handleVerify} activeOpacity={0.8}>
-            <MaterialCommunityIcons name="fingerprint" size={24} color="white" />
+            <MaterialCommunityIcons name="fingerprint" size={22} color="white" />
             <Text style={s.verifyBtnText}>Verify & Sygn</Text>
           </TouchableOpacity>
           <Text style={s.biometricText}>Biometric verification required</Text>
@@ -111,7 +111,7 @@ const s = StyleSheet.create({
   gpsCard: { backgroundColor: '#1A1A1A', borderRadius: 24, padding: 20, gap: 16 },
   gpsTop: { flexDirection: 'row', gap: 12, alignItems: 'center' },
   gpsIconWrap: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#1E2D24', alignItems: 'center', justifyContent: 'center' },
-  gpsStatusText: { fontFamily: Fonts.semiBold, fontSize: 18, color: Colors.white },
+  gpsStatusText: { fontFamily: Fonts.semiBold, fontSize: 16, color: Colors.white },
   gpsSubText: { fontFamily: Fonts.regular, fontSize: 13, color: Colors.mutedText },
   mapPlaceholder: { 
     height: 160, backgroundColor: '#251A1A', borderRadius: 18, 
@@ -136,21 +136,21 @@ const s = StyleSheet.create({
   // Action Area
   actionArea: { marginTop: 40, alignItems: 'center' },
   verifyBtn: { 
-    width: '100%', height: 70, backgroundColor: Colors.orange, borderRadius: 35, 
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 
+    width: '100%', backgroundColor: Colors.orange, borderRadius: 50,
+    paddingVertical: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 
   },
-  verifyBtnText: { fontFamily: Fonts.bold, fontSize: 22, color: Colors.white },
+  verifyBtnText: { fontFamily: Fonts.semiBold, fontSize: 16, color: Colors.white },
   biometricText: { fontFamily: Fonts.regular, fontSize: 14, color: Colors.mutedText, marginTop: 16 },
 
   // Success Area
   successArea: { marginTop: 32, alignItems: 'center' },
   successCheck: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#4CAF50', alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
-  successTitle: { fontFamily: Fonts.bold, fontSize: 24, color: Colors.white, marginBottom: 24 },
+  successTitle: { fontFamily: Fonts.semiBold, fontSize: 16, color: Colors.white, marginBottom: 24 },
   
   receiptCard: { width: '100%', backgroundColor: '#1A1A1A', borderRadius: 24, padding: 20, gap: 12 },
   receiptHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8, borderBottomWidth: 1, borderBottomColor: '#222', paddingBottom: 12 },
   receiptLabel: { fontFamily: Fonts.bold, fontSize: 14, color: Colors.white, letterSpacing: 1 },
   receiptRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  receiptKey: { fontFamily: Fonts.regular, fontSize: 16, color: Colors.mutedText },
-  receiptValue: { fontFamily: Fonts.bold, fontSize: 16, color: Colors.white },
+  receiptKey: { fontFamily: Fonts.regular, fontSize: 15, color: Colors.mutedText },
+  receiptValue: { fontFamily: Fonts.bold, fontSize: 15, color: Colors.white },
 });
