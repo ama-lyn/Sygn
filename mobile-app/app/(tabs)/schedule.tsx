@@ -1,11 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors, Fonts } from '../../src/constants/theme';
-import { getWeekTimetable, TimetableEntry } from '../../src/constants/apiService';
+import { useAppData } from '../../src/constants/AppContext';
+import { TimetableEntry } from '../../src/constants/apiService';
 
-const { width: _ } = { width: 0 }; // unused but keeps pattern
+const UNIT_COLORS = ['#4A9EFF', '#4CAF50', '#E040FB', '#FFC107', '#FF5252', '#4A9EFF'];
 
 const HOURS = [8, 9, 10, 11, 12, 13, 14, 15, 16];
 const START_HOUR = 8;
@@ -19,46 +20,24 @@ const DAY_FULL: Record<Day, string> = {
   Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday', Fri: 'Friday',
 };
 
-const UNIT_COLORS = ['#4A9EFF', '#4CAF50', '#E040FB', '#FFC107', '#FF5252', '#4A9EFF'];
-
 export default function Schedule() {
+  const { weekClasses, loading, refresh } = useAppData();
   const [activeDay, setActiveDay] = useState<Day>('Mon');
-  const [timetable, setTimetable] = useState<Record<Day, TimetableEntry[]>>({
-    Mon: [], Tue: [], Wed: [], Thu: [], Fri: [],
-  });
-  const [colorMap, setColorMap] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [now, setNow] = useState(new Date());
 
-  useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 60000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const load = useCallback(async () => {
-    try {
-      const entries = await getWeekTimetable();
-      const grouped: Record<Day, TimetableEntry[]> = { Mon: [], Tue: [], Wed: [], Thu: [], Fri: [] };
-      const colors: Record<string, string> = {};
-      let colorIdx = 0;
-
-      entries.forEach((e) => {
-        const dayKey = (Object.keys(DAY_FULL) as Day[]).find((k) => DAY_FULL[k] === e.day_of_week);
-        if (dayKey) grouped[dayKey].push(e);
-        if (!colors[e.unit_code]) {
-          colors[e.unit_code] = UNIT_COLORS[colorIdx % UNIT_COLORS.length];
-          colorIdx++;
-        }
-      });
-
-      setTimetable(grouped);
-      setColorMap(colors);
-    } catch (_) {}
-    finally { setLoading(false); setRefreshing(false); }
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
+  // Build timetable and colorMap from shared context
+  const timetable: Record<Day, TimetableEntry[]> = { Mon: [], Tue: [], Wed: [], Thu: [], Fri: [] };
+  const colorMap: Record<string, string> = {};
+  let colorIdx = 0;
+  weekClasses.forEach((e) => {
+    const dayKey = (Object.keys(DAY_FULL) as Day[]).find((k) => DAY_FULL[k] === e.day_of_week);
+    if (dayKey) timetable[dayKey].push(e);
+    if (!colorMap[e.unit_code]) {
+      colorMap[e.unit_code] = UNIT_COLORS[colorIdx % UNIT_COLORS.length];
+      colorIdx++;
+    }
+  });
 
   const nowTop = () => {
     const decimal = now.getHours() + now.getMinutes() / 60;
@@ -72,7 +51,7 @@ export default function Schedule() {
   const dayClasses = timetable[activeDay];
 
   return (
-    <SafeAreaView style={s.container}>
+    <SafeAreaView style={s.container} edges={['top']}>
       <View style={s.header}>
         <Text style={s.title}>Timetable</Text>
         <Text style={s.subtitle}>SEMESTER 2</Text>
@@ -96,7 +75,7 @@ export default function Schedule() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={s.timelineScroll}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={Colors.orange} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); refresh(); setRefreshing(false); }} tintColor={Colors.orange} />}
         >
           <View style={s.timelineWrapper}>
             <View style={{ width: TIME_COL_WIDTH }}>
@@ -151,8 +130,8 @@ export default function Schedule() {
 
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  header: { paddingHorizontal: 22, paddingTop: 10, marginBottom: 20 },
-  title: { fontFamily: Fonts.bold, fontSize: 32, color: Colors.white },
+  header: { paddingHorizontal: 22, paddingTop: 20, marginBottom: 20 },
+  title: { fontFamily: Fonts.bold, fontSize: 28, color: Colors.white },
   subtitle: { fontFamily: Fonts.regular, fontSize: 13, color: Colors.mutedText, letterSpacing: 1.5 },
   dayRowWrap: { marginBottom: 20 },
   dayRow: { paddingHorizontal: 22, gap: 12 },

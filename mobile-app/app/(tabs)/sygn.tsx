@@ -86,7 +86,7 @@ export default function SygnScreen() {
   const isReady = gpsStatus === 'granted' && coords !== null && activeClass !== null;
 
   return (
-    <SafeAreaView style={s.container}>
+    <SafeAreaView style={s.container} edges={['top']}>
       <View style={s.header}>
         <Text style={s.title}>Check-in</Text>
         <Text style={s.subtitle}>VERIFY YOUR PRESENCE</Text>
@@ -205,8 +205,8 @@ export default function SygnScreen() {
 
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background, paddingHorizontal: 20 },
-  header: { marginTop: 10, marginBottom: 24 },
-  title: { fontFamily: Fonts.bold, fontSize: 32, color: Colors.white },
+  header: { marginTop: 20, marginBottom: 24 },
+  title: { fontFamily: Fonts.bold, fontSize: 28, color: Colors.white },
   subtitle: { fontFamily: Fonts.regular, fontSize: 13, color: Colors.mutedText, letterSpacing: 1.5 },
   row: { flexDirection: 'row', alignItems: 'center' },
   gpsCard: { backgroundColor: '#1A1A1A', borderRadius: 24, padding: 20, gap: 16 },

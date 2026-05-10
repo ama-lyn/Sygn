@@ -6,9 +6,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Fonts } from '../../src/constants/theme';
-import { getTodayTimetable, getProgressStats, TimetableEntry } from '../../src/constants/apiService';
+import { useAppData } from '../../src/constants/AppContext';
+import { TimetableEntry } from '../../src/constants/apiService';
 
 const UNIT_COLORS = ['#4A9EFF', '#4CAF50', '#E040FB', '#FFC107', '#FF5252'];
 
@@ -99,28 +99,15 @@ const row = StyleSheet.create({
 // ── Home Screen ────────────────────────────────────────────
 export default function Home() {
   const router = useRouter();
+  const { fullName, todayClasses, progress, loading, refresh } = useAppData();
   const [sygnState, setSygnState] = useState<SygnState>('searching');
-  const [fullName, setFullName] = useState('');
-  const [todayClasses, setTodayClasses] = useState<TimetableEntry[]>([]);
-  const [stats, setStats] = useState<{ streak: number; overall: number } | null>(null);
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const load = useCallback(async () => {
-    try {
-      const [name, timetable, progress] = await Promise.all([
-        AsyncStorage.getItem('full_name'),
-        getTodayTimetable(),
-        getProgressStats(),
-      ]);
-      setFullName(name ?? '');
-      setTodayClasses(timetable);
-      setStats({ streak: progress.streak, overall: progress.overall_percentage });
-    } catch (_) {}
-    finally { setLoading(false); setRefreshing(false); }
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
+  const handleRefresh = () => {
+    setRefreshing(true);
+    refresh();
+    setRefreshing(false);
+  };
 
   const handleSygnPress = () => {
     if (sygnState === 'searching') setSygnState('ready');
@@ -130,8 +117,7 @@ export default function Home() {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'GOOD MORNING,' : hour < 17 ? 'GOOD AFTERNOON,' : 'GOOD EVENING,';
   const firstName = fullName.split(' ')[0] || null;
-
-  // current or next class
+  const stats = progress ? { streak: progress.streak, overall: progress.overall_percentage } : null;
   const now = new Date();
   const nowMins = now.getHours() * 60 + now.getMinutes();
   const currentClass = todayClasses.find((e) => {
@@ -149,11 +135,11 @@ export default function Home() {
   }
 
   return (
-    <SafeAreaView style={s.container}>
+    <SafeAreaView style={s.container} edges={['top']}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={s.scroll}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={Colors.orange} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={Colors.orange} />}
       >
         {/* Header */}
         <View style={s.header}>
@@ -236,10 +222,10 @@ export default function Home() {
 
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  scroll: { paddingHorizontal: 20, paddingBottom: 24, gap: 16 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingTop: 8 },
+  scroll: { paddingHorizontal: 20, paddingBottom: 24, gap: 16, paddingTop: 32 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   greeting: { fontFamily: Fonts.regular, fontSize: 12, color: Colors.mutedText, letterSpacing: 1 },
-  name: { fontFamily: Fonts.bold, fontSize: 24, color: Colors.white },
+  name: { fontFamily: Fonts.bold, fontSize: 28, color: Colors.white },
   streak: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1A1A1A', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6, gap: 4 },
   streakIcon: { fontSize: 14 },
   streakNum: { fontFamily: Fonts.bold, fontSize: 15, color: Colors.white },

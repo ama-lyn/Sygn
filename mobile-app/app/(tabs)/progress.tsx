@@ -1,10 +1,10 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Svg, { Circle } from 'react-native-svg';
 import { Colors, Fonts } from '../../src/constants/theme';
-import { getProgressStats, ProgressStats } from '../../src/constants/apiService';
+import { useAppData } from '../../src/constants/AppContext';
 
 function CircularProgress({ size, strokeWidth, percentage, color }: { size: number; strokeWidth: number; percentage: number; color: string }) {
   const radius = (size - strokeWidth) / 2;
@@ -38,34 +38,23 @@ function ProgressBar({ percentage, color }: { percentage: number; color: string 
 }
 
 export default function Progress() {
-  const [data, setData] = useState<ProgressStats | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { progress: data, loading, refresh } = useAppData();
   const [refreshing, setRefreshing] = useState(false);
-
-  const load = useCallback(async () => {
-    try {
-      const stats = await getProgressStats();
-      setData(stats);
-    } catch (_) {}
-    finally { setLoading(false); setRefreshing(false); }
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
 
   if (loading) {
     return (
-      <SafeAreaView style={[s.container, { justifyContent: 'center', alignItems: 'center' }]}>
+      <SafeAreaView style={[s.container, { justifyContent: 'center', alignItems: 'center' }]} edges={['top']}>
         <ActivityIndicator color={Colors.orange} />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={s.container}>
+    <SafeAreaView style={s.container} edges={['top']}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={s.scroll}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={Colors.orange} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); refresh(); setRefreshing(false); }} tintColor={Colors.orange} />}
       >
         <View style={s.header}>
           <Text style={s.title}>Progress</Text>
@@ -84,24 +73,24 @@ export default function Progress() {
           </View>
         </View>
 
-        {/* Alerts */}
-        {(data?.alerts ?? []).map((alert, i) => {
-          // find the unit this alert is about to pick the right color
-          const unit = data?.units.find(u => alert.includes(u.unit_name));
-          const pct = unit?.percentage ?? 0;
-          const alertColor = pct >= 60 ? '#FFC107' : '#FF5252';
-          const alertBg    = pct >= 60 ? '#2A2410' : '#2A1818';
-          const alertBorder = pct >= 60 ? '#443300' : '#422';
+        {/* Single summary alert */}
+        {(data?.alerts ?? []).length > 0 && (() => {
+          const count = data!.alerts.length;
+          const hasRed = data!.units.some(u => u.percentage < 60);
+          const alertColor  = hasRed ? '#FF5252' : '#FFC107';
+          const alertBg     = hasRed ? '#2A1818' : '#2A2410';
+          const alertBorder = hasRed ? '#422'    : '#443300';
+          const summary = `${count} unit${count > 1 ? 's' : ''} below 80% attendance. Check your progress below.`;
           return (
-            <View key={i} style={[s.alertCard, { backgroundColor: alertBg, borderColor: alertBorder }]}>
-              <MaterialCommunityIcons name="triangle-outline" size={24} color={alertColor} />
+            <View style={[s.alertCard, { backgroundColor: alertBg, borderColor: alertBorder }]}>
+              <MaterialCommunityIcons name="triangle-outline" size={20} color={alertColor} />
               <View style={s.alertContent}>
                 <Text style={[s.alertTitle, { color: alertColor }]}>Attendance Alert</Text>
-                <Text style={s.alertDesc}>{alert}</Text>
+                <Text style={s.alertDesc}>{summary}</Text>
               </View>
             </View>
           );
-        })}
+        })()}
 
         <Text style={s.sectionLabel}>BY COURSE</Text>
 
@@ -130,8 +119,8 @@ export default function Progress() {
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   scroll: { paddingHorizontal: 20, paddingBottom: 40 },
-  header: { marginBottom: 24, marginTop: 10 },
-  title: { fontFamily: Fonts.bold, fontSize: 32, color: Colors.white },
+  header: { marginBottom: 24, marginTop: 20 },
+  title: { fontFamily: Fonts.bold, fontSize: 28, color: Colors.white },
   subtitle: { fontFamily: Fonts.regular, fontSize: 12, color: Colors.mutedText, letterSpacing: 1.5 },
   overallCard: { backgroundColor: '#1A1A1A', borderRadius: 24, padding: 24, flexDirection: 'row', alignItems: 'center', gap: 20, marginBottom: 16 },
   overallInfo: { flex: 1 },

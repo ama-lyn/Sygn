@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Switch, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Colors, Fonts } from '../../src/constants/theme';
-import { getProfile, ProfileData, clearSession } from '../../src/constants/apiService';
+import { useAppData } from '../../src/constants/AppContext';
+import { clearSession } from '../../src/constants/apiService';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -44,29 +45,18 @@ function SettingRow({ icon, label, value, isToggle, toggleValue, onToggle }: {
   );
 }
 const setting = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#222' },
-  label: { flex: 1, fontFamily: Fonts.regular, fontSize: 15, color: Colors.white },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#222' },
+  label: { flex: 1, fontFamily: Fonts.regular, fontSize: 13, color: Colors.white },
   right: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  value: { fontFamily: Fonts.regular, fontSize: 13, color: Colors.mutedText },
+  value: { fontFamily: Fonts.regular, fontSize: 12, color: Colors.mutedText },
 });
 
 export default function Profile() {
   const router = useRouter();
-  const [profile, setProfile] = useState<ProfileData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { profile, loading, refresh } = useAppData();
   const [refreshing, setRefreshing] = useState(false);
   const [biometrics, setBiometrics] = useState(true);
   const [notifications, setNotifications] = useState(true);
-
-  const load = useCallback(async () => {
-    try {
-      const data = await getProfile();
-      setProfile(data);
-    } catch (_) {}
-    finally { setLoading(false); setRefreshing(false); }
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
 
   const handleSignOut = async () => {
     await clearSession();
@@ -75,18 +65,18 @@ export default function Profile() {
 
   if (loading) {
     return (
-      <SafeAreaView style={[s.container, { justifyContent: 'center', alignItems: 'center' }]}>
+      <SafeAreaView style={[s.container, { justifyContent: 'center', alignItems: 'center' }]} edges={['top']}>
         <ActivityIndicator color={Colors.orange} />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={s.container}>
+    <SafeAreaView style={s.container} edges={['top']}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={s.scroll}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={Colors.orange} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); refresh(); setRefreshing(false); }} tintColor={Colors.orange} />}
       >
         <Text style={s.pageTitle}>Profile</Text>
         <Text style={s.pageSubtitle}>ACCOUNT & SETTINGS</Text>
@@ -107,15 +97,6 @@ export default function Profile() {
           <StatCard value={String(profile?.stats.enrolled_count ?? 0)} label="COURSES" />
           <StatCard value={`${profile?.stats.attendance_percentage ?? 0}%`} label="ATTENDANCE" />
           <StatCard value={`${profile?.streak ?? 0} 🔥`} label="STREAK" />
-        </View>
-
-        <Text style={s.sectionLabel}>ENROLLED CLASSES</Text>
-        <View style={s.listCard}>
-          {(profile?.enrolled_classes ?? []).map((c, i, arr) => (
-            <View key={c.unit_code} style={[s.classRow, i < arr.length - 1 && s.classRowBorder]}>
-              <Text style={s.classText}>{c.unit_code} — {c.unit_name}</Text>
-            </View>
-          ))}
         </View>
 
         <Text style={s.sectionLabel}>SETTINGS</Text>
@@ -139,7 +120,7 @@ export default function Profile() {
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   scroll: { paddingHorizontal: 20, paddingBottom: 32, gap: 14 },
-  pageTitle: { fontFamily: Fonts.bold, fontSize: 26, color: Colors.white, paddingTop: 8 },
+  pageTitle: { fontFamily: Fonts.bold, fontSize: 28, color: Colors.white, paddingTop: 20 },
   pageSubtitle: { fontFamily: Fonts.regular, fontSize: 11, color: Colors.mutedText, letterSpacing: 1, marginTop: -8 },
   userCard: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: '#1A1A1A', borderRadius: 16, padding: 16 },
   avatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: Colors.orange, alignItems: 'center', justifyContent: 'center' },
