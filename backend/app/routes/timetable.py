@@ -13,7 +13,6 @@ DAY_MAP = {
 }
 
 def get_student_id(token: dict = Depends(verify_token)) -> int:
-    """Extract student row id from token sub (auth_id)"""
     auth_id = token.get("sub")
     result = supabase_admin.table("students") \
         .select("id") \
@@ -25,8 +24,6 @@ def get_student_id(token: dict = Depends(verify_token)) -> int:
     return result.data["id"]
 
 def fetch_timetable(student_id: int, day: str = None) -> List[dict]:
-    """Fetch timetable entries for a student, optionally filtered by day"""
-    # Get enrolled unit ids
     enrollments = supabase_admin.table("enrollments") \
         .select("unit_id") \
         .eq("student_id", student_id) \
@@ -37,9 +34,9 @@ def fetch_timetable(student_id: int, day: str = None) -> List[dict]:
 
     unit_ids = [e["unit_id"] for e in enrollments.data]
 
-    # Query timetable joined with units and classrooms
+    # Join timetable → rooms (room_code) → units (unit_code, unit_name)
     query = supabase_admin.table("timetable") \
-        .select("*, units(unit_code, unit_name), classrooms(room_code, latitude, longitude, radius_meters)") \
+        .select("*, units(unit_code, unit_name), rooms(room_code)") \
         .in_("unit_id", unit_ids)
 
     if day:
@@ -49,24 +46,17 @@ def fetch_timetable(student_id: int, day: str = None) -> List[dict]:
     return result.data or []
 
 def format_entry(row: dict) -> dict:
-    """Flatten joined timetable row into a clean response"""
     return {
         "id":            row["id"],
         "unit_code":     row["units"]["unit_code"],
         "unit_name":     row["units"]["unit_name"],
-        "room_code":     row["classrooms"]["room_code"] if row["classrooms"] else "Online",
+        "room_code":     row["rooms"]["room_code"] if row.get("rooms") else "Online",
         "day_of_week":   row["day_of_week"],
         "start_time":    str(row["start_time"]),
         "end_time":      str(row["end_time"]),
-        "semester":      row["semester"],
-        "academic_year": row["academic_year"],
-        "week_number":   row["week_number"],
-        "classroom": {
-            "room_code":     row["classrooms"]["room_code"],
-            "latitude":      row["classrooms"]["latitude"],
-            "longitude":     row["classrooms"]["longitude"],
-            "radius_meters": row["classrooms"]["radius_meters"],
-        } if row["classrooms"] else None,
+        "semester":      row.get("semester"),
+        "academic_year": row.get("academic_year"),
+        "week_number":   row.get("week_number"),
     }
 
 
@@ -85,9 +75,8 @@ def get_week(student_id: int = Depends(get_student_id)):
 
 @router.get("/day/{day_name}", response_model=List[TimetableEntry])
 def get_by_day(day_name: str, student_id: int = Depends(get_student_id)):
-    valid_days = list(DAY_MAP.values())
     day = day_name.capitalize()
-    if day not in valid_days:
-        raise HTTPException(status_code=400, detail=f"Invalid day. Use one of: {valid_days}")
+    if day not in DAY_MAP.values():
+        raise HTTPException(status_code=400, detail=f"Invalid day. Use Monday–Friday")
     rows = fetch_timetable(student_id, day=day)
     return [format_entry(r) for r in rows]
