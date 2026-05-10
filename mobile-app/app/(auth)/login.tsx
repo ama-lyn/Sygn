@@ -1,19 +1,50 @@
 import { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
-  StyleSheet, Dimensions,
+  StyleSheet, Dimensions, Alert, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Crypto from 'expo-crypto';
 import { Colors, Fonts } from '../../src/constants/theme';
+import { login } from '../../src/constants/apiService';
 
 const { width } = Dimensions.get('window');
 
+const getDeviceId = async () => {
+  let id = await AsyncStorage.getItem('device_id');
+  if (!id) { id = Crypto.randomUUID(); await AsyncStorage.setItem('device_id', id); }
+  return id;
+};
+
 export default function Login() {
   const router = useRouter();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [remember, setRemember] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async () => {
+    if (!email.trim() || !password.trim()) {
+      Alert.alert('Missing fields', 'Please enter your email and password');
+      return;
+    }
+    setLoading(true);
+    try {
+      const deviceId = await getDeviceId();
+      const data = await login(email.trim(), password, deviceId);
+      await AsyncStorage.setItem('token', data.access_token);
+      await AsyncStorage.setItem('student_id', data.student_id);
+      await AsyncStorage.setItem('full_name', data.full_name);
+      router.replace('/(tabs)');
+    } catch (e: any) {
+      Alert.alert('Login failed', e.message ?? 'Check your credentials and try again');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <SafeAreaView style={s.container}>
@@ -31,10 +62,12 @@ export default function Login() {
         <Text style={s.label}>EMAIL OR STUDENT ID</Text>
         <TextInput
           style={s.input}
-          placeholder="student@university.edu"
+          placeholder="student@students.jkuat.ac.ke"
           placeholderTextColor="#555"
           keyboardType="email-address"
           autoCapitalize="none"
+          value={email}
+          onChangeText={setEmail}
         />
 
         <Text style={s.label}>PASSWORD</Text>
@@ -44,6 +77,8 @@ export default function Login() {
             placeholder="········"
             placeholderTextColor="#555"
             secureTextEntry={!showPassword}
+            value={password}
+            onChangeText={setPassword}
           />
           <TouchableOpacity style={s.eyeBtn} onPress={() => setShowPassword(!showPassword)}>
             <MaterialCommunityIcons name={showPassword ? 'eye-off' : 'eye'} size={20} color="#555" />
@@ -52,18 +87,18 @@ export default function Login() {
 
         {/* Remember & Forgot */}
         <View style={s.row}>
-          <TouchableOpacity style={s.checkRow} onPress={() => setRemember(!remember)}>
-            <View style={[s.checkbox, remember && s.checkboxActive]} />
-            <Text style={s.rememberText}>Remember me</Text>
-          </TouchableOpacity>
+          <View />
           <TouchableOpacity>
             <Text style={s.forgot}>Forgot password?</Text>
           </TouchableOpacity>
         </View>
 
         {/* Sign In */}
-        <TouchableOpacity style={s.btn} activeOpacity={0.85} onPress={() => router.replace('/(tabs)')}>
-          <Text style={s.btnText}>Sign In  →</Text>
+        <TouchableOpacity style={s.btn} activeOpacity={0.85} onPress={handleLogin} disabled={loading}>
+          {loading
+            ? <ActivityIndicator color={Colors.white} />
+            : <Text style={s.btnText}>Sign In  →</Text>
+          }
         </TouchableOpacity>
 
         {/* OR divider */}

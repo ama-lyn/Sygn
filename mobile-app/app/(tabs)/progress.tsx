@@ -1,95 +1,127 @@
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { useEffect, useState, useCallback } from 'react';
+import { View, Text, ScrollView, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Svg, { Circle } from 'react-native-svg';
 import { Colors, Fonts } from '../../src/constants/theme';
+import { getProgressStats, ProgressStats } from '../../src/constants/apiService';
 
-const courses = [
-  { code: 'ICS 2301', name: 'Data Structures',    attended: 18, total: 22, color: '#4CAF50' },
-  { code: 'ICS 2205', name: 'Operating Systems',  attended: 20, total: 22, color: '#4CAF50' },
-  { code: 'SMA 2104', name: 'Linear Algebra',     attended: 15, total: 20, color: '#FFC107' },
-  { code: 'ICS 2106', name: 'Computer Networks',  attended: 19, total: 22, color: '#4CAF50' },
-];
-
-// ── Circular display using donut icon ─────────────────────
-function CircularProgress({ percentage }: { percentage: number }) {
+function CircularProgress({ size, strokeWidth, percentage, color }: { size: number; strokeWidth: number; percentage: number; color: string }) {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = radius * 2 * Math.PI;
+  const strokeDashoffset = circumference - (percentage / 100) * circumference;
   return (
-    <View style={ring.container}>
-      <MaterialCommunityIcons name="chart-donut" size={90} color="#4CAF50" />
-      <Text style={ring.label}>{percentage}%</Text>
+    <View style={{ width: size, height: size }}>
+      <Svg width={size} height={size}>
+        <Circle cx={size / 2} cy={size / 2} r={radius} stroke="#222" strokeWidth={strokeWidth} fill="none" />
+        <Circle
+          cx={size / 2} cy={size / 2} r={radius}
+          stroke={color} strokeWidth={strokeWidth}
+          strokeDasharray={circumference} strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round" fill="none"
+          rotation="-90" origin={`${size / 2}, ${size / 2}`}
+        />
+      </Svg>
+      <View style={[StyleSheet.absoluteFillObject, { alignItems: 'center', justifyContent: 'center' }]}>
+        <Text style={s.circleText}>{percentage}%</Text>
+      </View>
     </View>
   );
 }
 
-const ring = StyleSheet.create({
-  container: { width: 90, height: 90, justifyContent: 'center', alignItems: 'center' },
-  label: { position: 'absolute', fontFamily: Fonts.bold, fontSize: 18, color: Colors.white },
-});
-
-// ── Linear progress bar ────────────────────────────────────
 function ProgressBar({ percentage, color }: { percentage: number; color: string }) {
   return (
-    <View style={bar.track}>
-      <View style={[bar.fill, { width: `${percentage}%` as any, backgroundColor: color }]} />
+    <View style={s.barBackground}>
+      <View style={[s.barFill, { width: `${percentage}%` as any, backgroundColor: color }]} />
     </View>
   );
 }
 
-const bar = StyleSheet.create({
-  track: { height: 6, backgroundColor: '#2A2A2A', borderRadius: 4, overflow: 'hidden', marginVertical: 10 },
-  fill:  { height: '100%', borderRadius: 4 },
-});
-
-// ── Main screen ────────────────────────────────────────────
 export default function Progress() {
+  const [data, setData] = useState<ProgressStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const stats = await getProgressStats();
+      setData(stats);
+    } catch (_) {}
+    finally { setLoading(false); setRefreshing(false); }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  if (loading) {
+    return (
+      <SafeAreaView style={[s.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator color={Colors.orange} />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={s.container}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.scroll}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={s.scroll}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={Colors.orange} />}
+      >
+        <View style={s.header}>
+          <Text style={s.title}>Progress</Text>
+          <Text style={s.subtitle}>ATTENDANCE ANALYTICS</Text>
+        </View>
 
-        <Text style={s.title}>Progress</Text>
-        <Text style={s.subtitle}>ATTENDANCE ANALYTICS</Text>
-
-        {/* Overall card */}
+        {/* Overall Card */}
         <View style={s.overallCard}>
-          <CircularProgress percentage={84} />
-          <View style={s.overallRight}>
+          <CircularProgress size={100} strokeWidth={8} percentage={data?.overall_percentage ?? 0} color="#4CAF50" />
+          <View style={s.overallInfo}>
             <Text style={s.overallTitle}>Overall Attendance</Text>
             <View style={s.trendRow}>
-              <MaterialCommunityIcons name="trending-up" size={16} color="#4CAF50" />
-              <Text style={s.trendText}>+2% from last week</Text>
+              <MaterialCommunityIcons name="trending-up" size={18} color="#4CAF50" />
+              <Text style={s.trendText}>{data?.total_attended ?? 0}/{data?.total_classes ?? 0} classes</Text>
             </View>
           </View>
         </View>
 
-        {/* Alert card */}
-        <View style={s.alertCard}>
-          <MaterialCommunityIcons name="alert-outline" size={22} color="#FF5252" />
-          <View style={{ flex: 1 }}>
-            <Text style={s.alertTitle}>Attendance Alert</Text>
-            <Text style={s.alertDesc}>
-              You're at 75% in Linear Algebra. Attend the next 3 classes to reach 80%.
-            </Text>
-          </View>
-        </View>
-
-        <Text style={s.sectionLabel}>BY COURSE</Text>
-
-        {courses.map((c) => {
-          const pct = Math.round((c.attended / c.total) * 100);
+        {/* Alerts */}
+        {(data?.alerts ?? []).map((alert, i) => {
+          // find the unit this alert is about to pick the right color
+          const unit = data?.units.find(u => alert.includes(u.unit_name));
+          const pct = unit?.percentage ?? 0;
+          const alertColor = pct >= 60 ? '#FFC107' : '#FF5252';
+          const alertBg    = pct >= 60 ? '#2A2410' : '#2A1818';
+          const alertBorder = pct >= 60 ? '#443300' : '#422';
           return (
-            <View key={c.code} style={s.courseCard}>
-              <View style={s.courseHeader}>
-                <View>
-                  <Text style={s.courseCode}>{c.code}</Text>
-                  <Text style={s.courseName}>{c.name}</Text>
-                </View>
-                <Text style={[s.coursePct, { color: c.color }]}>{pct}%</Text>
+            <View key={i} style={[s.alertCard, { backgroundColor: alertBg, borderColor: alertBorder }]}>
+              <MaterialCommunityIcons name="triangle-outline" size={24} color={alertColor} />
+              <View style={s.alertContent}>
+                <Text style={[s.alertTitle, { color: alertColor }]}>Attendance Alert</Text>
+                <Text style={s.alertDesc}>{alert}</Text>
               </View>
-              <ProgressBar percentage={pct} color={c.color} />
-              <Text style={s.courseFooter}>{c.attended}/{c.total} classes attended</Text>
             </View>
           );
         })}
 
+        <Text style={s.sectionLabel}>BY COURSE</Text>
+
+        {(data?.units ?? []).map((item) => (
+          <View key={item.unit_code} style={s.courseCard}>
+            <View style={s.courseHeader}>
+              <View>
+                <Text style={s.courseCode}>{item.unit_code}</Text>
+                <Text style={s.courseName}>{item.unit_name}</Text>
+              </View>
+              <Text style={[s.coursePct, { color: item.color }]}>{item.percentage}%</Text>
+            </View>
+            <ProgressBar percentage={item.percentage} color={item.color} />
+            <Text style={s.courseFooter}>{item.attended}/{item.total} classes attended</Text>
+          </View>
+        ))}
+
+        {data?.units.length === 0 && (
+          <Text style={s.emptyText}>No attendance data yet</Text>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -97,28 +129,28 @@ export default function Progress() {
 
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  scroll: { paddingHorizontal: 20, paddingBottom: 40, gap: 14 },
-  title: { fontFamily: Fonts.bold, fontSize: 28, color: Colors.white, paddingTop: 8 },
-  subtitle: { fontFamily: Fonts.regular, fontSize: 11, color: Colors.mutedText, letterSpacing: 1, marginTop: -8 },
-  overallCard: {
-    backgroundColor: '#1A1A1A', borderRadius: 20,
-    padding: 20, flexDirection: 'row', alignItems: 'center', gap: 20,
-  },
-  overallRight: { flex: 1 },
-  overallTitle: { fontFamily: Fonts.bold, fontSize: 18, color: Colors.white },
-  trendRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 },
-  trendText: { fontFamily: Fonts.regular, fontSize: 13, color: '#4CAF50' },
-  alertCard: {
-    backgroundColor: '#2A1515', borderWidth: 1, borderColor: '#3D2020',
-    borderRadius: 16, padding: 16, flexDirection: 'row', gap: 12, alignItems: 'flex-start',
-  },
-  alertTitle: { fontFamily: Fonts.bold, fontSize: 15, color: '#FF5252', marginBottom: 4 },
+  scroll: { paddingHorizontal: 20, paddingBottom: 40 },
+  header: { marginBottom: 24, marginTop: 10 },
+  title: { fontFamily: Fonts.bold, fontSize: 32, color: Colors.white },
+  subtitle: { fontFamily: Fonts.regular, fontSize: 12, color: Colors.mutedText, letterSpacing: 1.5 },
+  overallCard: { backgroundColor: '#1A1A1A', borderRadius: 24, padding: 24, flexDirection: 'row', alignItems: 'center', gap: 20, marginBottom: 16 },
+  overallInfo: { flex: 1 },
+  overallTitle: { fontFamily: Fonts.bold, fontSize: 20, color: Colors.white },
+  trendRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
+  trendText: { fontFamily: Fonts.regular, fontSize: 14, color: '#4CAF50' },
+  circleText: { fontFamily: Fonts.bold, fontSize: 18, color: Colors.white },
+  alertCard: { backgroundColor: '#2A1818', borderColor: '#422', borderWidth: 1, borderRadius: 20, padding: 16, flexDirection: 'row', gap: 12, marginBottom: 16 },
+  alertContent: { flex: 1 },
+  alertTitle: { fontFamily: Fonts.bold, fontSize: 16, color: '#FF5252', marginBottom: 4 },
   alertDesc: { fontFamily: Fonts.regular, fontSize: 13, color: Colors.mutedText, lineHeight: 18 },
-  sectionLabel: { fontFamily: Fonts.semiBold, fontSize: 11, color: Colors.mutedText, letterSpacing: 1 },
-  courseCard: { backgroundColor: '#1A1A1A', borderRadius: 16, padding: 16 },
-  courseHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  courseCode: { fontFamily: Fonts.bold, fontSize: 16, color: Colors.white },
-  courseName: { fontFamily: Fonts.regular, fontSize: 13, color: Colors.mutedText, marginTop: 2 },
-  coursePct: { fontFamily: Fonts.bold, fontSize: 16 },
-  courseFooter: { fontFamily: Fonts.regular, fontSize: 12, color: '#555' },
+  sectionLabel: { fontFamily: Fonts.bold, fontSize: 11, color: Colors.mutedText, letterSpacing: 1, marginBottom: 16 },
+  courseCard: { backgroundColor: '#1A1A1A', borderRadius: 20, padding: 20, marginBottom: 16 },
+  courseHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
+  courseCode: { fontFamily: Fonts.bold, fontSize: 17, color: Colors.white },
+  courseName: { fontFamily: Fonts.regular, fontSize: 13, color: Colors.mutedText },
+  coursePct: { fontFamily: Fonts.bold, fontSize: 18 },
+  barBackground: { height: 8, backgroundColor: '#222', borderRadius: 4, overflow: 'hidden' },
+  barFill: { height: 8, borderRadius: 4 },
+  courseFooter: { fontFamily: Fonts.regular, fontSize: 12, color: '#666', marginTop: 12 },
+  emptyText: { fontFamily: Fonts.regular, fontSize: 14, color: Colors.mutedText, textAlign: 'center', paddingVertical: 40 },
 });
