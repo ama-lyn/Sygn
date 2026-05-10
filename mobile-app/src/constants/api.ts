@@ -1,2 +1,1 @@
-// Change this to your Render URL when deployed
-export const API_URL = 'http://10.12.220.250:8000';
+export const API_URL = 'https://sygn-backend.onrender.com';
