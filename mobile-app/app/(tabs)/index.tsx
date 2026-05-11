@@ -12,58 +12,6 @@ import { TimetableEntry } from '../../src/constants/apiService';
 
 const UNIT_COLORS = ['#4A9EFF', '#4CAF50', '#E040FB', '#FFC107', '#FF5252'];
 
-type SygnState = 'searching' | 'ready' | 'signed';
-
-// ── Sygn Button ────────────────────────────────────────────
-function SygnButton({ state, onPress }: { state: SygnState; onPress: () => void }) {
-  const configs = {
-    searching: {
-      bg: '#C8860A',
-      label: 'Searching for class...',
-      icon: <MaterialCommunityIcons name="wifi" size={22} color={Colors.white} />,
-      badge: { color: '#C8860A', text: '● Searching GPS...' },
-      sub: null,
-    },
-    ready: {
-      bg: '#2E7D52',
-      label: 'Ready to Sygn',
-      icon: <MaterialCommunityIcons name="fingerprint" size={22} color={Colors.white} />,
-      badge: { color: '#2E7D52', text: '● Inside classroom' },
-      sub: null,
-    },
-    signed: {
-      bg: '#2E7D52',
-      label: "Sygn'd ✓",
-      icon: <MaterialCommunityIcons name="check" size={22} color={Colors.white} />,
-      badge: { color: '#2E7D52', text: '● Attendance recorded' },
-      sub: null,
-    },
-  };
-  const c = configs[state];
-  return (
-    <View>
-      <View style={[badge.wrap, { backgroundColor: c.badge.color + '22' }]}>
-        <Text style={[badge.text, { color: c.badge.color === '#C8860A' ? '#FFA726' : '#4CAF50' }]}>
-          {c.badge.text}
-        </Text>
-      </View>
-      <TouchableOpacity
-        style={[btn.base, { backgroundColor: c.bg }]}
-        onPress={onPress}
-        activeOpacity={0.85}
-        disabled={state === 'signed'}
-      >
-        {c.icon}
-        <Text style={btn.label}>{c.label}</Text>
-      </TouchableOpacity>
-    </View>
-  );
-}
-
-const badge = StyleSheet.create({
-  wrap: { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, marginBottom: 12 },
-  text: { fontFamily: Fonts.regular, fontSize: 13 },
-});
 const btn = StyleSheet.create({
   base: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, borderRadius: 50, paddingVertical: 18 },
   label: { fontFamily: Fonts.semiBold, fontSize: 18, color: Colors.white },
@@ -100,7 +48,6 @@ const row = StyleSheet.create({
 export default function Home() {
   const router = useRouter();
   const { fullName, todayClasses, progress, loading, refresh } = useAppData();
-  const [sygnState, setSygnState] = useState<SygnState>('searching');
   const [refreshing, setRefreshing] = useState(false);
 
   const handleRefresh = () => {
@@ -109,10 +56,7 @@ export default function Home() {
     setRefreshing(false);
   };
 
-  const handleSygnPress = () => {
-    if (sygnState === 'searching') setSygnState('ready');
-    else if (sygnState === 'ready') setSygnState('signed');
-  };
+  const handleSygnPress = () => router.push('/(tabs)/sygn');
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'GOOD MORNING,' : hour < 17 ? 'GOOD AFTERNOON,' : 'GOOD EVENING,';
@@ -120,11 +64,12 @@ export default function Home() {
   const stats = progress ? { streak: progress.streak, overall: progress.overall_percentage } : null;
   const now = new Date();
   const nowMins = now.getHours() * 60 + now.getMinutes();
+  // Only show a class if it's actually active (±15 min window), no fallback to first class
   const currentClass = todayClasses.find((e) => {
     const [sh, sm] = e.start_time.split(':').map(Number);
     const [eh, em] = e.end_time.split(':').map(Number);
     return nowMins >= sh * 60 + sm - 15 && nowMins <= eh * 60 + em + 30;
-  }) ?? todayClasses[0] ?? null;
+  }) ?? null;
 
   if (loading) {
     return (
@@ -154,8 +99,17 @@ export default function Home() {
         </View>
 
         {/* Current Class Card */}
-        {currentClass ? (
-          <View style={[s.card, sygnState === 'signed' && s.cardSigned]}>
+        {todayClasses.length === 0 ? (
+          <View style={s.emptyCard}>
+            <MaterialCommunityIcons name="calendar-check-outline" size={40} color="#333" />
+            <Text style={s.emptyTitle}>No classes today</Text>
+            <Text style={s.emptySubtitle}>Enjoy your free time 🎉</Text>
+            <TouchableOpacity style={s.emptyBtn} onPress={() => router.push('/(tabs)/schedule')}>
+              <Text style={s.emptyBtnText}>View full timetable</Text>
+            </TouchableOpacity>
+          </View>
+        ) : currentClass ? (
+          <View style={s.card}>
             <View style={s.cardTop}>
               <View>
                 <Text style={s.cardLabel}>CURRENT CLASS</Text>
@@ -173,18 +127,46 @@ export default function Home() {
                 </View>
               </View>
             </View>
-            <SygnButton state={sygnState} onPress={handleSygnPress} />
-          </View>
-        ) : (
-          <View style={s.emptyCard}>
-            <MaterialCommunityIcons name="calendar-check-outline" size={40} color="#333" />
-            <Text style={s.emptyTitle}>No classes today</Text>
-            <Text style={s.emptySubtitle}>Enjoy your free time 🎉</Text>
-            <TouchableOpacity style={s.emptyBtn} onPress={() => router.push('/(tabs)/schedule')}>
-              <Text style={s.emptyBtnText}>View full timetable</Text>
+            <TouchableOpacity style={[btn.base, { backgroundColor: '#2E7D52' }]} onPress={handleSygnPress} activeOpacity={0.85}>
+              <MaterialCommunityIcons name="fingerprint" size={22} color={Colors.white} />
+              <Text style={btn.label}>Sygn In</Text>
             </TouchableOpacity>
           </View>
-        )}
+        ) : (() => {
+          const nextClass = todayClasses.find((e) => {
+            const [sh, sm] = e.start_time.split(':').map(Number);
+            return nowMins < sh * 60 + sm;
+          });
+          return (
+            <View style={s.card}>
+              <View style={s.cardTop}>
+                <View>
+                  <Text style={s.cardLabel}>{nextClass ? 'NEXT CLASS' : 'ALL DONE'}</Text>
+                  <Text style={s.cardCode}>{nextClass ? nextClass.unit_code : '—'}</Text>
+                  <Text style={s.cardName}>{nextClass ? nextClass.unit_name : 'No more classes today'}</Text>
+                </View>
+                {nextClass && (
+                  <View style={s.cardMeta}>
+                    <View style={s.metaRow}>
+                      <MaterialCommunityIcons name="clock-outline" size={13} color={Colors.mutedText} />
+                      <Text style={s.metaText}>{nextClass.start_time.slice(0, 5)}</Text>
+                    </View>
+                    <View style={s.metaRow}>
+                      <MaterialCommunityIcons name="map-marker-outline" size={13} color={Colors.mutedText} />
+                      <Text style={s.metaText}>{nextClass.room_code}</Text>
+                    </View>
+                  </View>
+                )}
+              </View>
+              {nextClass && (
+                <TouchableOpacity style={[btn.base, { backgroundColor: '#1E2D24', borderWidth: 1, borderColor: '#2E7D52' }]} onPress={handleSygnPress} activeOpacity={0.85}>
+                  <MaterialCommunityIcons name="clock-outline" size={20} color="#4CAF50" />
+                  <Text style={[btn.label, { color: '#4CAF50', fontSize: 15 }]}>Opens at {nextClass.start_time.slice(0, 5)}</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          );
+        })()}
 
         {/* Stats */}
         <View style={s.statsRow}>
@@ -230,7 +212,6 @@ const s = StyleSheet.create({
   streakIcon: { fontSize: 14 },
   streakNum: { fontFamily: Fonts.bold, fontSize: 15, color: Colors.white },
   card: { backgroundColor: '#1A1A1A', borderRadius: 18, padding: 18, gap: 16, borderWidth: 1, borderColor: 'transparent' },
-  cardSigned: { borderColor: '#2E7D5244' },
   cardTop: { flexDirection: 'row', justifyContent: 'space-between' },
   cardLabel: { fontFamily: Fonts.regular, fontSize: 11, color: Colors.mutedText, letterSpacing: 1, marginBottom: 4 },
   cardCode: { fontFamily: Fonts.bold, fontSize: 20, color: Colors.white },

@@ -102,6 +102,14 @@ export type AttendanceResult = {
   validation: { temporal_valid: boolean; spatial_valid: boolean; identity_valid: boolean };
 };
 
+// ── Absence Requests ────────────────────────────────────────
+export const submitAbsenceRequest = (
+  timetable_id: number,
+  reason: string,
+  document_url: string | null,
+): Promise<{ success: boolean; message: string }> =>
+  post('/absence/request', { timetable_id, reason, document_url });
+
 export const markAttendance = (
   timetable_id: number,
   latitude: number,

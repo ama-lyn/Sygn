@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, Dimensions, Alert, ActivityIndicator,
@@ -8,6 +8,9 @@ import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
+import * as LocalAuthentication from 'expo-local-authentication';
+import { useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
 import { Colors, Fonts } from '../../src/constants/theme';
 import { login } from '../../src/constants/apiService';
 
@@ -25,6 +28,32 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [hasSavedSession, setHasSavedSession] = useState(false);
+
+  useEffect(() => {
+    LocalAuthentication.hasHardwareAsync().then(setBiometricAvailable);
+  }, []);
+
+  useFocusEffect(useCallback(() => {
+    AsyncStorage.getItem('token').then((token) => setHasSavedSession(!!token));
+  }, []));
+
+  const handleBiometricLogin = async () => {
+    const token = await AsyncStorage.getItem('token');
+    if (!token) {
+      Alert.alert('No saved session', 'Please sign in with your email and password first.');
+      return;
+    }
+    const auth = await LocalAuthentication.authenticateAsync({
+      promptMessage: 'Sign in to Sygn',
+      fallbackLabel: 'Use password instead',
+      disableDeviceFallback: false,
+    });
+    if (auth.success) {
+      router.replace('/(tabs)');
+    }
+  };
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -109,9 +138,11 @@ export default function Login() {
         </View>
 
         {/* Biometrics */}
-        <TouchableOpacity style={s.bioBtn} activeOpacity={0.85}>
-          <MaterialCommunityIcons name="fingerprint" size={24} color={Colors.orange} />
-          <Text style={s.bioText}>Sign in with Biometrics</Text>
+        <TouchableOpacity style={s.bioBtn} activeOpacity={0.85} onPress={handleBiometricLogin} disabled={!hasSavedSession}>
+          <MaterialCommunityIcons name="fingerprint" size={24} color={hasSavedSession ? Colors.orange : '#444'} />
+          <Text style={[s.bioText, !hasSavedSession && { color: '#444' }]}>
+            {hasSavedSession ? 'Sign in with Biometrics' : 'Sign in once to enable biometrics'}
+          </Text>
         </TouchableOpacity>
       </View>
 

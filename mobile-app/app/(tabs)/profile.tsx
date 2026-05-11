@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Switch, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Switch, ActivityIndicator, RefreshControl, Share } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -58,6 +58,14 @@ export default function Profile() {
   const [biometrics, setBiometrics] = useState(true);
   const [notifications, setNotifications] = useState(true);
 
+  const handleDownloadReport = async () => {
+    if (!profile) return;
+    const header = 'Unit Code,Unit Name,Attendance %';
+    const rows = profile.enrolled_classes.map((c) => `${c.unit_code},${c.unit_name},N/A`).join('\n');
+    const csv = `Student: ${profile.full_name}\nID: ${profile.student_id}\nOverall: ${profile.stats.attendance_percentage}%\n\n${header}\n${rows}`;
+    await Share.share({ message: csv, title: 'Sygn Attendance Report' });
+  };
+
   const handleSignOut = async () => {
     await clearSession();
     router.replace('/(auth)/login');
@@ -104,7 +112,9 @@ export default function Profile() {
           <SettingRow icon="fingerprint" label="Biometric Authentication" isToggle toggleValue={biometrics} onToggle={setBiometrics} />
           <SettingRow icon="bell-outline" label="Notifications" isToggle toggleValue={notifications} onToggle={setNotifications} />
           <View style={{ borderBottomWidth: 0 }}>
-            <SettingRow icon="tray-arrow-down" label="Download Reports" />
+            <TouchableOpacity onPress={handleDownloadReport}>
+              <SettingRow icon="tray-arrow-down" label="Download Reports" />
+            </TouchableOpacity>
           </View>
         </View>
 

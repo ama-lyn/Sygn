@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "mobile-app",
+    "name": "Sygn",
     "slug": "mobile-app",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -22,7 +22,13 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.sygn.app"
+      "package": "com.sygn.app",
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -30,6 +36,12 @@
     "plugins": [
       "expo-font",
       "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Sygn needs access to your photos to attach absence documents."
+        }
+      ],
       [
         "expo-location",
         {
@@ -42,6 +54,12 @@
       "eas": {
         "projectId": "4f06637a-58c4-4ae5-8fe9-34f2cb5dd4b5"
       }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/4f06637a-58c4-4ae5-8fe9-34f2cb5dd4b5"
     }
   }
 }
