@@ -20,7 +20,7 @@ export function DashboardShell({
   ].map((i) => ({ ...i, label: i.label.replace("\n", " "), active: i.href === activeHref }));
 
   return (
-    <div className="min-h-full bg-zinc-50">
+    <div className="min-h-screen bg-zinc-50">
       <div className="mx-auto flex w-full max-w-[1400px] gap-6 px-4 py-6">
         <aside className="hidden w-[260px] shrink-0 lg:block">
           <div className="sticky top-6 rounded-3xl border border-zinc-100 bg-white px-3 py-4 shadow-sm">
@@ -33,7 +33,19 @@ export function DashboardShell({
 
             <SidebarNav items={items} />
 
-            <div className="mt-8 px-3 pb-2">
+            <div className="mt-4 px-3 pb-2">
+              <Link
+                href="/auth/login"
+                className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-zinc-500 transition-colors hover:bg-zinc-50 hover:text-zinc-900"
+              >
+                <span className="grid h-9 w-9 place-items-center rounded-xl">
+                  <Icon name="logout" className="h-5 w-5" />
+                </span>
+                Sign Out
+              </Link>
+            </div>
+
+            <div className="mt-2 px-3 pb-2">
               <div className="flex items-center gap-3 rounded-2xl bg-zinc-50 px-3 py-3">
                 <div className="grid h-10 w-10 place-items-center rounded-xl bg-white ring-1 ring-zinc-200">
                   <Icon name="user" className="h-5 w-5 text-zinc-700" />

@@ -18,7 +18,8 @@ type Props = {
     | "play"
     | "filter"
     | "export"
-    | "user";
+    | "user"
+    | "logout";
   className?: string;
 };
 
@@ -188,6 +189,18 @@ export function Icon({ name, className }: Props) {
           <path
             d="M12 12.2a4.3 4.3 0 1 0 0-8.6 4.3 4.3 0 0 0 0 8.6Zm-7 8.2c0-4 3.1-6.7 7-6.7s7 2.7 7 6.7c0 .6-.5 1.1-1.1 1.1H6.1c-.6 0-1.1-.5-1.1-1.1Z"
             fill="currentColor"
+          />
+        </svg>
+      );
+    case "logout":
+      return (
+        <svg {...common} viewBox="0 0 24 24" className={cls}>
+          <path
+            d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4m7 14 5-5-5-5m5 5H9"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
           />
         </svg>
       );
