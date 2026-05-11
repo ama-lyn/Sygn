@@ -1,0 +1,5 @@
+android/
+.expo/
+node_modules/
+.git/
+*.log

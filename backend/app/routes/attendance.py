@@ -1,11 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from typing import List
 from app.database import supabase_admin
 from app.utils.jwt import verify_token
 from app.models.attendance import AttendanceRequest, AttendanceResponse, ValidationResult
 
 router = APIRouter(prefix="/attendance", tags=["Attendance"])
+
+EAT = timezone(timedelta(hours=3))  # East Africa Time
 
 
 def get_student(token: dict = Depends(verify_token)) -> dict:
@@ -35,7 +37,7 @@ def mark_attendance(body: AttendanceRequest, student: dict = Depends(get_student
 
     entry = tt.data
     room = entry.get("rooms")
-    now = datetime.now()
+    now = datetime.now(EAT)  # Use EAT timezone
 
     # ── 1. TEMPORAL VALIDATION ────────────────────────────────
     day_map = {0: "Monday", 1: "Tuesday", 2: "Wednesday", 3: "Thursday", 4: "Friday"}
@@ -45,16 +47,8 @@ def mark_attendance(body: AttendanceRequest, student: dict = Depends(get_student
     if entry["day_of_week"] == today:
         start = datetime.strptime(str(entry["start_time"])[:5], "%H:%M").time()
         end   = datetime.strptime(str(entry["end_time"])[:5], "%H:%M").time()
-        from datetime import time as dtime
-        window_start = dtime(
-            start.hour if start.minute >= 15 else max(start.hour - 1, 0),
-            (start.minute - 15) % 60
-        )
-        window_end = dtime(
-            end.hour if end.minute <= 29 else min(end.hour + 1, 23),
-            (end.minute + 30) % 60
-        )
-        temporal_valid = window_start <= now.time() <= window_end
+        now_time = now.time().replace(tzinfo=None)
+        temporal_valid = start <= now_time <= end
 
     # ── 2. SPATIAL VALIDATION — PostGIS polygon check ─────────
     spatial_valid = False

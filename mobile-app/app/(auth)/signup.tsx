@@ -37,7 +37,7 @@ export default function Signup() {
       <View style={s.form}>
         <Text style={s.label}>FULL NAME</Text>
         <TextInput
-          style={s.input} placeholder="John Doe" placeholderTextColor="#555"
+          style={s.input} placeholder="Jane" placeholderTextColor="#555"
           autoCapitalize="words" value={fullName} onChangeText={setFullName}
         />
 

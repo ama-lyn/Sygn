@@ -1,6 +1,8 @@
 import { Tabs } from 'expo-router';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { MaterialCommunityIcons, } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Fonts } from '../../src/constants/theme';
+import { AppProvider } from '../../src/constants/AppContext';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -9,20 +11,24 @@ function TabIcon({ name, color }: { name: IconName; color: string }) {
 }
 
 export default function TabsLayout() {
+  const insets = useSafeAreaInsets();
+
   return (
+    <AppProvider>
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
           backgroundColor: '#1A1A1A',
           borderTopWidth: 0,
-          height: 80,
-          paddingBottom: 16,
+          height: 56 + insets.bottom,
+          paddingBottom: insets.bottom,
           paddingTop: 8,
         },
         tabBarActiveTintColor: Colors.orange,
         tabBarInactiveTintColor: '#555',
         tabBarLabelStyle: { fontFamily: Fonts.regular, fontSize: 11 },
+        unmountOnBlur: false,
       }}
     >
       <Tabs.Screen
@@ -61,5 +67,6 @@ export default function TabsLayout() {
         }}
       />
     </Tabs>
+    </AppProvider>
   );
 }
