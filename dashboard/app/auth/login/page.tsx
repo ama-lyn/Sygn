@@ -104,21 +104,6 @@ export default function LoginPage() {
               Sign in to Dashboard
             </Button>
 
-            <div className="flex items-center gap-4">
-              <div className="h-px flex-1 bg-zinc-100" />
-              <div className="text-xs text-zinc-400">Or continue with</div>
-              <div className="h-px flex-1 bg-zinc-100" />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <Button variant="outline" size="md" className="justify-center">
-                Google
-              </Button>
-              <Button variant="outline" size="md" className="justify-center">
-                Microsoft
-              </Button>
-            </div>
-
             <div className="pt-2 text-center text-xs text-zinc-500">
               Having trouble signing in?{" "}
               <Link
